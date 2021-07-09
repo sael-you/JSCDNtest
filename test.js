@@ -252,14 +252,14 @@
             const e = () => { XR8.addCameraPipelineModule(XRExtras.Loading.pipelineModule()) },
                 n = (e, n) => { if (!n) return n; const t = e.querySelector(n); return t && t.getAttribute("src") || n };
             return {
-                // "xrextras-almost-there": {
-                //     schema: { url: { default: "" } },
-                //     init() {
-                //         const e = () => { this.data.url && XRExtras.AlmostThere.configure({ url: this.data.url }), XR8.addCameraPipelineModule(XRExtras.AlmostThere.pipelineModule()) };
-                //         window.XRExtras && window.XR8 ? e() : window.addEventListener("xrandextrasloaded", e, { once: !0 })
-                //     },
-                //     remove() { XRExtras.AlmostThere.hideAlmostThere(), XR8.removeCameraPipelineModule("almostthere") }
-                // },
+                "xrextras-almost-there": {
+                    schema: { url: { default: "" } },
+                    init() {
+                        const e = () => { this.data.url && XRExtras.AlmostThere.configure({ url: this.data.url }), XR8.addCameraPipelineModule(XRExtras.AlmostThere.pipelineModule()) };
+                        window.XRExtras && window.XR8 ? e() : window.addEventListener("xrandextrasloaded", e, { once: !0 })
+                    },
+                    remove() { XRExtras.AlmostThere.hideAlmostThere(), XR8.removeCameraPipelineModule("almostthere") }
+                },
                 "xrextras-loading": {
                     schema: { loadBackgroundColor: { default: "" }, cameraBackgroundColor: { default: "" }, loadImage: { default: "" }, loadAnimation: { default: "" } },
                     init() {
