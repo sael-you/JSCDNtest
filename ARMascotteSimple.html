@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title></title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@e416f25/dist/aframe-master.min.js"></script>
+    <script src="https://ghcdn.rawgit.org/chenzlabs/aframe-ar/fb69413/dist/aframe-ar.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.js"></script>
+    <script src="https://unpkg.com/aframe-gltf-part-component/dist/aframe-gltf-part-component.min.js"></script>
+    <script src="https://unpkg.com/aframe-look-at-component@0.8.0/dist/aframe-look-at-component.min.js"></script>
+    <!-- <script src="//cdn.8thwall.com/web/aframe/aframe-particle-system-component.min.js"></script> -->
+    <script src="https://unpkg.com/aframe-particle-system-component@1.0.x/dist/aframe-particle-system-component.min.js"></script>
+    <script>
+        AFRAME.registerComponent('start', {
+                init() {
+                    // block pointer events until buttonEnter is clicked
+                    const uiDiv = document.getElementById('uiDiv')
+                    uiDiv.style['pointer-events'] = 'auto'
+
+                    // set up background blocker
+                    uiDiv.style['background-color'] = 'rgba(0, 0, 0, 0.75)'
+
+                    // indicate clickable with hand cursor (desktop)
+                    const buttonEnter = document.getElementById('buttonEnter')
+                    buttonEnter.style.cursor = 'pointer'
+
+                    // fade-in functionality
+                    const fadeIn = function() {
+                        // allow point events again
+                        uiDiv.style['pointer-events'] = 'none'
+
+                        // remove startButton
+                        buttonEnter.parentNode.remove(buttonEnter)
+
+                        // fade out uiDiv background
+                        uiDiv.style['background-color'] = 'rgba(0, 0, 0, 0.0)'
+                        uiDiv.style.transition = 'background-color 1000ms linear'
+
+                        // activate the spawner
+                        const camera = document.querySelector('#camera')
+                        camera.setAttribute('spawner', '')
+                    }
+
+                    // activate for desktop/touchscreen
+                    buttonEnter.addEventListener('click', fadeIn)
+                },
+            })
+            // AFRAME no longer sends intersection event every time intersection changes position;
+            // this component is modified from docs to move a different entity than the one hit.
+        AFRAME.registerComponent('raycaster-move', {
+            schema: {
+                target: {
+                    type: 'selector'
+                }
+            },
+            init: function() {
+                // Use events to figure out what raycaster is listening so we don't have to
+                // hardcode the raycaster.
+                this.el.addEventListener('raycaster-intersected', evt => {
+                    this.raycaster = evt.detail.el;
+                });
+                this.el.addEventListener('raycaster-intersected-cleared', evt => {
+                    this.raycaster = null;
+                });
+            },
+            update: function(oldData) {
+                //
+            },
+            tick: function() {
+                if (!this.raycaster) {
+                    return;
+                } // Not intersecting.
+
+                this.intersection = this.raycaster.components.raycaster.getIntersection(this.el);
+                if (!this.intersection) {
+                    return;
+                }
+                //console.log(intersection.point);
+                this.data.target.setAttribute("position", this.intersection.point);
+            }
+        });
+
+        //     const content = `
+        // <a-entity>
+        //   <a-sphere position="0 0.5 0" scale="0.2 1 0.2"></a-sphere>
+        // </a-entity>`;
+
+        // function markit(e) {
+        //     // Put the logo where the mark is.
+        //     var mark = document.querySelector('#mark');
+        //     var el = document.createElement('a-entity');
+        //     AFRAME.scenes[0].appendChild(el);
+        //     el.innerHTML = content;
+        //     el.setAttribute('scale', '0.1, 0.1, 0.1');
+        //     el.setAttribute('position', mark.getAttribute('position'));
+        //     var inner = el.querySelector('a-sphere');
+        //     if (e.type == 'touchstart') {
+        //         inner.setAttribute('material', 'color:red;opacity:0.5');
+        //     }
+        //     if (e.type == 'touchend') {
+        //         inner.setAttribute('material', 'color:green;opacity:0.5');
+        //     }
+        //     if (e.type == 'click') {
+        //         inner.setAttribute('material', 'color:blue;opacity:0.5');
+        //     }
+        // }
+
+        // window.addEventListener('touchstart', markit);
+        // window.addEventListener('touchend', markit);
+        // window.addEventListener('click', markit);
+    </script>
+    <style>
+        .mainUI {
+            position: fixed;
+            top: 0px;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+            /* allow click-through in transparent areas */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            pointer-events: none;
+        }
+        
+        .regionUI {
+            position: absolute;
+            display: flex;
+            flex-direction: row;
+            pointer-events: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            pointer-events: none;
+        }
+        
+        .buttonUI {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            pointer-events: none;
+            filter: drop-shadow(0px 0px 20px white);
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        
+        #enter.buttonUILoaded {
+            pointer-events: auto;
+        }
+        
+        #btn {
+            z-index: 4;
+            position: absolute;
+            left: 50%;
+            bottom: 20px;
+            transform: translate(-50%, -50%);
+            margin: 0 auto;
+            font-family: Nunito, sans-serif;
+            color: #fff;
+            font-weight: 600;
+            text-decoration: none;
+            padding: .8em 1.6em;
+            border-radius: 50px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            background-color: #7ee8fa;
+            background-image: linear-gradient(315deg, #7ee8fa 0%, #80ff72 74%);
+            opacity: 0;
+            -webkit-transition: opacity 0.3s ease-in-out;
+            -moz-transition: opacity 0.3s ease-in-out;
+            -ms-transition: opacity 0.3s ease-in-out;
+            -o-transition: opacity 0.3s ease-in-out;
+            transition: opacity 0.3 ease-in-out;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            pointer-events: none;
+        }
+        
+        #btn.fadeIn {
+            pointer-events: all;
+            opacity: 1;
+        }
+        
+        #btn.fadeOut {
+            opacity: 0;
+        }
+        
+        #textDiv {
+            height: 100px;
+            line-height: 100px;
+            text-align: center;
+        }
+        
+        #text {
+            display: inline-block;
+            vertical-align: middle;
+            line-height: normal;
+            z-index: 4;
+            position: absolute;
+            left: 50%;
+            top: 40px;
+            width: 400px;
+            transform: translate(-50%, -50%);
+            margin: 0 auto;
+            padding: .8em 1.6em;
+            color: #FF9800;
+            font-family: 'Luckiest Guy', cursive;
+            font-size: 35px;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            pointer-events: none;
+        }
+        
+        * {
+            -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+        }
+    </style>
+</head>
+
+<body>
+    <a-scene ar start raycaster-move="target:#ring">
+        <a-assets>
+            <a-asset-item id="defeated" src="https://cdn.glitch.com/1bbc3a12-dbf1-45c3-88c5-e9febb9b5410%2FDefeated.glb?v=1625937752157"></a-asset-item>
+            <audio id="defeatedSound" preload="true" crossorigin="anonymous" src="https://cdn.glitch.com/1bbc3a12-dbf1-45c3-88c5-e9febb9b5410%2FDefeated.mp3?v=1625937763351"></audio>
+            <a-asset-item id="won" src="https://cdn.glitch.com/1bbc3a12-dbf1-45c3-88c5-e9febb9b5410%2Fwon.glb?v=1625937485799"></a-asset-item>
+            <audio id="wonSound" preload="true" crossorigin="anonymous" src="https://cdn.glitch.com/1bbc3a12-dbf1-45c3-88c5-e9febb9b5410%2Fwon.mp3?v=1625937635461"></audio>
+
+        </a-assets>
+        <!-- Use AR raycaster, and set raycaster to ignore all A-Frame objects like logos. -->
+        <a-entity ar-raycaster raycaster="objects:none"></a-entity>
+        <a-camera id="camera">
+            <!-- Heads-up text display. -->
+            <a-text id="hud" scale="0.01 0.01 0.01" position="0 -0.025 -0.1" color="yellow" align="center" value="Move your phone to scan the floor, when it's done a bleu circle will appear"></a-text>
+        </a-camera>
+
+        <!-- Declare a ring to use as the raycaster intersection mark. -->
+        <a-ring id="ring" rotation="-90 0 0" position="0 0.005 -0.5" material="shader: flat; color: #5AC8FA" visible="false" radius-inner="0.04" radius-outer="0.05">
+    </a-scene>
+
+    <a id="btn" href=""></a>
+    <div id="textDiv">
+        <span id="text">
+
+
+
+</span>
+    </div>
+    <div class="mainUI" id="uiDiv" oncontextmenu="return false;">
+        <div class="regionUI">
+            <div id="enter" class="buttonUI">
+                <img src="https://cdn.glitch.com/1bbc3a12-dbf1-45c3-88c5-e9febb9b5410%2Fenter.png?v=1625937776423" id="buttonEnter" />
+            </div>
+        </div>
+    </div>
+    <script>
+        var sc = document.querySelector('a-scene');
+        this.camera = document.getElementById('camera')
+
+        this.button = document.getElementById('btn')
+
+        // Extract data from URL
+        const url = new URL(window.location.href)
+        this.state = url.searchParams.get('state')
+        const callToActionTxtBtn = url.searchParams.get('call_to_action_txt_btn')
+        const callToActionUrl = url.searchParams.get('call_to_action_url')
+        this.button.setAttribute('href', callToActionUrl)
+        this.button.innerHTML = callToActionTxtBtn
+        this.palette = ['#08FF00', '#F7FF00', '#FF0000', '#00FFF3', '#000FFF', '#A200FF', '#FF0093']
+
+        function showHUD(msg) {
+            sc.querySelector('#hud').setAttribute('value', msg);
+        }
+        var raycaster = document.querySelector('[ar-raycaster]');
+        var mark = document.querySelector('#ring');
+
+        raycaster.addEventListener('raycaster-intersection', function(evt) {
+            // Turn the mark green and move it to the intersection point.
+            // mark.setAttribute('color', 'green');
+            this.point = evt.detail.intersections[0].point
+            console.log("thisssss" + this.point);
+            ring.setAttribute('position', this.point);
+            ring.setAttribute('visible', true);
+            this.placed = false
+            window.addEventListener('click', function() {
+                // If the cursor has an intersection, place a marker.
+                // var cursor = sc.querySelector('[ar-raycaster]').components.cursor;
+                // if (this.intersection) {
+                // var marker = document.createElement('a-box');
+                // marker.setAttribute('width', 0.01);
+                // marker.setAttribute('depth', 0.01);
+                // marker.setAttribute('height', 1);
+                // marker.setAttribute('color', 'orange');
+                // marker.setAttribute('position', {
+                //     x: cursor.intersection.point.x,
+                //     y: cursor.intersection.point.y + 0.5,
+                //     z: cursor.intersection.point.z
+                // });
+                // sc.appendChild(marker);
+                if (!this.placed) {
+                    this.marker = document.createElement('a-entity')
+                    this.marker.setAttribute('visible', 'false')
+                    this.marker.setAttribute('scale', '0.5 0.5 0.5')
+                    if (this.state == 'lost') {
+                        // this.sound = new Howl({
+                        //   src: ['Defeated.mp3'],
+                        // })
+                        // this.sound.setAttribute('sound', 'src = #defeatedSound')
+                        this.sound = document.querySelector('#defeatedSound')
+                        document.getElementById('text').innerHTML += 'Voud avez perdu :('
+                        this.marker.setAttribute('gltf-model', '#defeated')
+                    } else if (this.state == 'won') {
+                        // this.sound = new Howl({
+                        //   src: ['won.mp3'],
+                        // })
+                        // this.sound.setAttribute('sound', 'src = #wonSound')
+                        this.sound = document.querySelector('#wonSound')
+                        console.log(this.sound)
+                        document.getElementById('text').innerHTML += 'Félicitation !!!'
+                        this.marker.setAttribute('gltf-model', '#won')
+                    }
+
+                    this.marker.setAttribute('shadow', {
+                        receive: false
+                    })
+                    this.marker.addEventListener('model-loaded', () => {
+                        // Once the model is loaded, we are ready to show it popping in using an animation
+                        this.marker.setAttribute('visible', 'true')
+                        this.marker.setAttribute('animation-mixer', {
+                            clip: 'Armature|mixamo.com|Layer0',
+                            loop: 'repeat',
+                            crossFadeDuration: 0.4,
+                        })
+                        this.loaded = true
+                    })
+                    this.placed = true
+                    sc.appendChild(this.marker)
+                        // Create new entity for the new object
+                    if (this.state == 'won') {
+                        for (let i = 0; i < 50; i++) {
+                            const angle = Math.random() * Math.PI * 2
+                            const radius = 1 + Math.random() * 4
+                            const y = Math.random() * 0.5
+                            const x = Math.sin(angle) * radius
+                            const z = Math.cos(angle) * radius
+                            const newPole = document.createElement('a-entity')
+                            const newRocket = document.createElement('a-entity')
+                            newRocket.classList.add('rocket')
+                            newPole.classList.add('pole')
+                                // newPole.setAttribute('gltf-model', '#poleModel')
+                                // newRocket.setAttribute('gltf-model', '#rocketModel')
+                            console.log(`${x} ${y} ${z}`)
+                            newPole.setAttribute('position', `${x} 0 ${z}`)
+                            newRocket.setAttribute('position', `${x} 0 ${z}`)
+                            newPole.appendChild(newRocket)
+                            this.marker.appendChild(newPole)
+                            this.isPlaying = false
+                        }
+                        this.rockets = Array.from(document.getElementsByClassName('rocket'))
+                    }
+                }
+                this.isPlaying = false
+                this.button.classList.toggle('fadeIn')
+                this.sound.currentTime = 0
+                this.sound.play()
+                    // console.log(this.point);
+                this.marker.setAttribute('position', mark.getAttribute('position'))
+                this.marker.setAttribute('look-at',
+                    `${this.camera.object3D.position.x} 0 ${this.camera.object3D.position.z}`)
+                if (!this.isPlaying && this.state == 'won') {
+                    this.isPlaying = true
+
+                    this.rockets.forEach((rocket) => {
+                        const rocketParticles = document.createElement('a-entity')
+                        const rocketPos = rocket.parentNode.getAttribute('position')
+
+                        const initPos = `${rocketPos.x} 0 ${rocketPos.z}`
+                        const wickEndPos = `${rocketPos.x} 0 ${rocketPos.z}`
+                        const endPos = `${rocketPos.x} 0 ${rocketPos.z - 1}`
+
+                        const randColor1 = this.palette[(Math.random() * this.palette.length) >> 0]
+                        const randColor2 = this.palette[(Math.random() * this.palette.length) >> 0]
+
+
+                        // activate wick particles
+                        rocketParticles.setAttribute('position', initPos)
+                        rocketParticles.setAttribute('scale', '0.001 0.001 0.001')
+                        rocketParticles.setAttribute('particle-system', {
+                            color: `${randColor1},${randColor2}`,
+                            positionSpread: '0 4 0',
+                            rotationAxis: 'x',
+                            duration: '4000',
+                            size: '0.05',
+                            direction: '-1',
+                            rotationAngle: '0',
+                            particleCount: '500',
+                            maxParticleCount: '1000',
+                            maxAge: '100',
+                            accelerationValue: '0, -1, 0',
+                            accelerationSpread: '0 -1 0',
+                            velocityValue: '0 0 0',
+                            blending: 1,
+                        })
+
+                        rocketParticles.setAttribute(
+                            'animation__blast', {
+                                property: 'scale',
+                                to: '0.1 0.1 0.1',
+                                easing: 'easeInOutQuad',
+                                dur: 500
+                            }
+                        )
+
+                        rocket.setAttribute(
+                            'animation__zipout', {
+                                property: 'scale',
+                                to: '0.01 1 0.01',
+                                dur: 100
+                            }
+                        )
+
+
+                        this.marker.appendChild(rocketParticles)
+                        setTimeout(
+                            () => Array.from(document.getElementsByClassName('rocket')).forEach((r) => {
+                                r.setAttribute('visible', 'false')
+                                r.classList.remove('rocket')
+                            }),
+                            100
+                        )
+
+                        setTimeout(() => {
+                            console.log('timeout final')
+                            this.isPlaying = false
+                        }, 150)
+                    })
+                }
+            });
+            showHUD('appuyez pour commencer l\'experience');
+
+            // Note, movement will now be done via raycaster-move component.
+            //mark.setAttribute('position', evt.detail.intersections[0].point);
+        });
+
+        raycaster.addEventListener('raycaster-intersection-cleared', function(evt) {
+            // Turn the mark red.  FIXME: lerp position
+            // mark.setAttribute('color', 'red');
+            showHUD('Detection perdu, dirigez votre telephone vers une surface platte pour continuer l\'experience\n'); // + el.outerHTML);
+            ring.setAttribute('visible', false);
+        });
+
+
+
+        function onSceneLoaded() {
+            var tempScale = new THREE.Vector3();
+            var tempMat4 = new THREE.Matrix4();
+            document.getElementById('enter').classList.add('buttonUILoaded')
+
+        }
+        if (sc.hasLoaded) {
+            onSceneLoaded();
+        } else {
+            sc.addEventListener('loaded', onSceneLoaded);
+        }
+    </script>
+</body>
+
+</html>
